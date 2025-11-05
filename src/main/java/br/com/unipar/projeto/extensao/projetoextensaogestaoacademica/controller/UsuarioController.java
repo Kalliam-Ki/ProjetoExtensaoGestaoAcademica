@@ -1,11 +1,12 @@
 package br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.controller;
 
-import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.dto.request.CriarUsuarioRequestDTO;
+import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.dto.request.UsuarioRequestDTO;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.dto.response.UsuarioResponseDTO;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.model.enums.PerfilUsuario;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.service.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -30,9 +31,11 @@ public class UsuarioController {
         this.usuarioService = usuarioService;
     }
 
+    // @Valid irá fazer com que o spring valide auto o dto antes de mandar
+    // para o service, então ele quebra aqui e não lá
     @PostMapping
     @Operation(summary = "Criar usuario", description = "Cria um novo usuario no sistema")
-    public ResponseEntity<UsuarioResponseDTO> criarUsuario(@RequestBody CriarUsuarioRequestDTO request) {
+    public ResponseEntity<UsuarioResponseDTO> criarUsuario(@Valid @RequestBody UsuarioRequestDTO request) {
         try {
             logger.info("Recebida requisicao para criar usuario: {}", request.getEmail());
             UsuarioResponseDTO response = usuarioService.criarUsuario(request);

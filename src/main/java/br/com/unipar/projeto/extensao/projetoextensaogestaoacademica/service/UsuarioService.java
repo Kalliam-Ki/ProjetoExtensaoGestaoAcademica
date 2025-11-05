@@ -1,6 +1,6 @@
 package br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.service;
 
-import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.dto.request.CriarUsuarioRequestDTO;
+import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.dto.request.UsuarioRequestDTO;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.dto.response.UsuarioResponseDTO;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.model.entity.Usuario;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.model.enums.PerfilUsuario;
@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 @Service
 public class UsuarioService {
 
+    // Logger para logs melhores e facilitar no debug
     private static final Logger logger = LoggerFactory.getLogger(UsuarioService.class);
     private final UsuarioRepository usuarioRepository;
 
@@ -22,7 +23,7 @@ public class UsuarioService {
         this.usuarioRepository = usuarioRepository;
     }
 
-    public UsuarioResponseDTO criarUsuario(CriarUsuarioRequestDTO request) {
+    public UsuarioResponseDTO criarUsuario(UsuarioRequestDTO request) {
         logger.info("Criando usuario: {}", request.getEmail());
 
         if (usuarioRepository.existsByEmail(request.getEmail())) {

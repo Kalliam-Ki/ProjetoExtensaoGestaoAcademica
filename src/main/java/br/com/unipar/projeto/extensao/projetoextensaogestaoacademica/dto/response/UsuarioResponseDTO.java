@@ -5,7 +5,6 @@ import java.time.LocalDateTime;
 
 public class UsuarioResponseDTO {
 
-    // Sem senha por questão de segurança
     private Long id;
     private String nome;
     private String email;
