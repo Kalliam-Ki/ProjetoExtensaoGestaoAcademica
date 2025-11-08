@@ -1,0 +1,158 @@
+Sistema de Gestão de Projetos Acadêmicos
+Sobre o Projeto
+Sistema completo desenvolvido em Java/Spring Boot para gestão de projetos acadêmicos, alunos, vínculos e auditoria de alterações. Permite o controle completo do ciclo de vida de projetos acadêmicos em instituições de ensino.
+
+Funcionalidades
+Gestão de Usuários
+Três perfis de acesso: ADMINISTRADOR, COORDENADOR, CONSULTA
+Cadastro e ativação/inativação de usuários
+Controle de permissões baseado em perfis
+
+Gestão de Projetos Acadêmicos
+Fluxo de status controlado: RASCUNHO → SUBMETIDO → EM_ANALISE → APROVADO → EM_ANDAMENTO → CONCLUIDO
+Validações de transição entre status
+Controle de datas automático
+Exclusão segura com validação de vínculos
+
+Gestão de Alunos
+Cadastro com matrícula única
+Controle por curso e período
+Ativação/inativação de alunos
+
+Sistema de Vínculos
+Vínculo aluno-projeto com função específica
+Controle de vínculos ativos/inativos
+Validação de duplicidade de vínculos
+Desvinculação em massa
+
+Auditoria Automática
+Registro automático de todas as operações (CREATE, UPDATE, DELETE)
+Histórico completo de alterações por registro
+Backup de valores antigos e novos
+Rastreabilidade por usuário e IP
+
+Tecnologias Utilizadas
+Backend
+Java 21
+Spring Boot 3.2.5
+Spring Data JPA
+Spring Validation
+SpringDoc OpenAPI (Swagger)
+
+Banco de Dados
+PostgreSQL
+JPA/Hibernate
+
+Ferramentas
+Maven (Gerenciamento de dependências)
+SLF4J + Logback (Logging)
+Lombok (Redução de boilerplate code)
+
+Estrutura do Projeto
+src/main/java/br/com/unipar/projeto/extensao/projetoextensaogestaoacademica/
+├── controller/          # Camada de apresentação (REST)
+├── service/             # Camada de negócio
+├── repository/          # Camada de persistência
+├── model/
+│   ├── entity/          # Entidades JPA
+│   └── enums/           # Enumerações do sistema
+└── dto/
+    ├── request/         # DTOs de entrada (validações)
+    └── response/        # DTOs de saída
+
+Modelo de Dados
+Entidades Principais
+Usuario - Usuários do sistema com perfis
+Projeto - Projetos acadêmicos com fluxo de status
+Aluno - Alunos participantes dos projetos
+AlunoProjeto - Vínculos entre alunos e projetos
+LogAlteracao - Registros de auditoria
+
+Relacionamentos
+Um Usuário pode criar múltiplos Projetos e Alunos
+Um Aluno pode estar vinculado a múltiplos Projetos
+Um Projeto pode ter múltiplos Alunos vinculados
+Todas as alterações são registradas em LogAlteracao
+
+Configuração e Instalação
+Pré-requisitos
+Java 21
+PostgreSQL 12+
+Maven 3.6+
+
+1. Configuração do Banco de Dados
+-- Execute o script de criação do banco
+psql -U postgres -f criar_banco_gestao_academica.sql
+
+2. Configuração da Aplicação
+Edite o application.properties:
+# Banco de Dados
+spring.datasource.url=jdbc:postgresql://localhost:5432/gestaoacademica
+spring.datasource.username=postgres
+spring.datasource.password=sua_senha
+
+# JPA
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+
+# Servidor
+server.port=8080
+server.servlet.context-path=/api
+
+3. Execução da Aplicação
+# Compilar o projeto
+mvn clean compile
+
+# Executar a aplicação
+mvn spring-boot:run
+
+Endpoints da API
+Autenticação
+Todos os endpoints (exceto leitura) requerem o header:
+usuario-id: {id_do_usuario}
+
+Usuários (/usuarios)
+POST /usuarios - Criar usuário (ADMIN)
+GET /usuarios - Listar usuários (ADMIN)
+GET /usuarios/{id} - Buscar usuário por ID (ADMIN)
+PUT /usuarios/{id}/inativar - Inativar usuário (ADMIN)
+PUT /usuarios/{id}/ativar - Ativar usuário (ADMIN)
+
+Projetos (/projetos)
+POST /projetos - Criar projeto (ADMIN, COORDENADOR)
+GET /projetos - Listar projetos (Todos)
+GET /projetos/{id} - Buscar projeto por ID (Todos)
+PUT /projetos/{id} - Atualizar projeto (ADMIN, COORDENADOR*)
+PATCH /projetos/{id}/status - Atualizar status (ADMIN, COORDENADOR)
+DELETE /projetos/{id} - Excluir projeto (ADMIN, COORDENADOR*)
+
+*Coordenador só pode editar/excluir projetos próprios
+
+Alunos (/alunos)
+POST /alunos - Criar aluno (ADMIN, COORDENADOR)
+GET /alunos - Listar alunos (Todos)
+GET /alunos/{id} - Buscar aluno por ID (Todos)
+PUT /alunos/{id} - Atualizar aluno (ADMIN, COORDENADOR*)
+PATCH /alunos/{id}/inativar - Inativar aluno (ADMIN, COORDENADOR*)
+
+*Coordenador só pode editar alunos próprios
+
+Vínculos (/aluno-projeto)
+POST /aluno-projeto/vincular - Vincular aluno a projeto (ADMIN, COORDENADOR)
+GET /aluno-projeto/aluno/{alunoId} - Listar vínculos por aluno (Todos)
+PATCH /aluno-projeto/{id}/desvincular - Desvincular aluno (ADMIN, COORDENADOR*)
+
+Auditoria (/auditoria)
+GET /auditoria - Listar todos os logs (ADMIN)
+GET /auditoria/tabela/{tabela} - Logs por tabela (ADMIN)
+GET /auditoria/registro/{tabela}/{id} - Logs por registro (ADMIN)
+
+Matriz de Permissões
+Funcionalidade	ADMIN	COORDENADOR	CONSULTA
+Gerenciar usuários	✅	❌	❌
+Criar projetos	✅	✅	❌
+Editar projetos	Todos	Próprios	❌
+Gerenciar alunos	✅	✅	❌
+Vincular alunos	✅	✅	❌
+Consultar dados	✅	✅	✅
+Acessar auditoria	✅	❌	❌
