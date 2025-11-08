@@ -1,5 +1,6 @@
 package br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.controller;
 
+import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.dto.request.AtualizarProjetoRequestDTO;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.dto.request.CriarProjetoRequestDTO;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.dto.response.ProjetoResponseDTO;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.dto.response.ProjetoResumoResponseDTO;
@@ -36,10 +37,10 @@ public class ProjetoController {
     @Operation(summary = "Criar projeto", description = "Cria um novo projeto academico")
     public ResponseEntity<ProjetoResponseDTO> criarProjeto(
             @Valid @RequestBody CriarProjetoRequestDTO request,
-            @RequestHeader("usuario-criador-id") Long usuarioCriadorId) {
+            @RequestHeader("usuario-id") Long usuarioId) {
         try {
-            logger.info("Recebida requisicao para criar projeto: {}", request.getTitulo());
-            ProjetoResponseDTO response = projetoService.criarProjeto(request, usuarioCriadorId);
+            logger.info("Recebida requisicao para criar projeto: {} pelo usuario: {}", request.getTitulo(), usuarioId);
+            ProjetoResponseDTO response = projetoService.criarProjeto(request, usuarioId);
             logger.info("Projeto criado com sucesso: {}", response.getTitulo());
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (RuntimeException e) {
@@ -58,9 +59,11 @@ public class ProjetoController {
 
     @PostMapping("/{id}/submeter")
     @Operation(summary = "Submeter projeto", description = "Submete um projeto para analise")
-    public ResponseEntity<ProjetoResponseDTO> submeterProjeto(@PathVariable Long id) {
+    public ResponseEntity<ProjetoResponseDTO> submeterProjeto(
+            @PathVariable Long id,
+            @RequestHeader("usuario-id") Long usuarioId) {
         try {
-            logger.info("Recebida requisicao para submeter projeto ID: {}", id);
+            logger.info("Recebida requisicao para submeter projeto ID: {} pelo usuario: {}", id, usuarioId);
             ProjetoResponseDTO projeto = projetoService.submeterProjeto(id);
             return ResponseEntity.ok(projeto);
         } catch (RuntimeException e) {
@@ -106,31 +109,51 @@ public class ProjetoController {
         return ResponseEntity.ok(projetos);
     }
 
+    @PutMapping("/{id}")
+    @Operation(summary = "Atualizar projeto", description = "Atualiza um projeto existente")
+    public ResponseEntity<ProjetoResponseDTO> atualizarProjeto(
+            @PathVariable Long id,
+            @Valid @RequestBody AtualizarProjetoRequestDTO request,
+            @RequestHeader("usuario-id") Long usuarioId) {
+        try {
+            logger.info("Recebida requisicao para atualizar projeto ID: {} pelo usuario: {}", id, usuarioId);
+            ProjetoResponseDTO projeto = projetoService.atualizarProjeto(id, request, usuarioId);
+            return ResponseEntity.ok(projeto);
+        } catch (RuntimeException e) {
+            logger.warn("Erro ao atualizar projeto ID {}: {}", id, e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
     @PatchMapping("/{id}/status")
     @Operation(summary = "Atualizar status do projeto", description = "Atualiza o status de um projeto")
     public ResponseEntity<ProjetoResponseDTO> atualizarStatusProjeto(
             @PathVariable Long id,
-            @RequestParam StatusProjeto status) {
+            @RequestParam StatusProjeto status,
+            @RequestHeader("usuario-id") Long usuarioId) {
         try {
-            logger.info("Recebida requisicao para atualizar status do projeto ID: {} para {}", id, status);
-            ProjetoResponseDTO projeto = projetoService.atualizarStatusProjeto(id, status);
+            logger.info("Recebida requisicao para atualizar status do projeto ID: {} para {} pelo usuario: {}",
+                    id, status, usuarioId);
+            ProjetoResponseDTO projeto = projetoService.atualizarStatusProjeto(id, status, usuarioId);
             return ResponseEntity.ok(projeto);
         } catch (RuntimeException e) {
             logger.warn("Erro ao atualizar status do projeto ID {}: {}", id, e.getMessage());
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.badRequest().build();
         }
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Excluir projeto", description = "Exclui um projeto pelo ID")
-    public ResponseEntity<Void> excluirProjeto(@PathVariable Long id) {
+    public ResponseEntity<Void> excluirProjeto(
+            @PathVariable Long id,
+            @RequestHeader("usuario-id") Long usuarioId) {
         try {
-            logger.info("Recebida requisicao para excluir projeto ID: {}", id);
-            projetoService.excluirProjeto(id);
+            logger.info("Recebida requisicao para excluir projeto ID: {} pelo usuario: {}", id, usuarioId);
+            projetoService.excluirProjeto(id, usuarioId);
             return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
             logger.warn("Erro ao excluir projeto ID {}: {}", id, e.getMessage());
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.badRequest().build();
         }
     }
 }

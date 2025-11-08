@@ -1,6 +1,6 @@
 package br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.controller;
 
-import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.dto.request.UsuarioRequestDTO;
+import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.dto.request.CriarUsuarioRequestDTO;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.dto.response.UsuarioResponseDTO;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.model.enums.PerfilUsuario;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.service.UsuarioService;
@@ -35,10 +35,12 @@ public class UsuarioController {
     // para o service, então ele quebra aqui e não lá
     @PostMapping
     @Operation(summary = "Criar usuario", description = "Cria um novo usuario no sistema")
-    public ResponseEntity<UsuarioResponseDTO> criarUsuario(@Valid @RequestBody UsuarioRequestDTO request) {
+    public ResponseEntity<UsuarioResponseDTO> criarUsuario(
+            @Valid @RequestBody CriarUsuarioRequestDTO request,
+            @RequestHeader("usuario-id") Long usuarioId) {
         try {
-            logger.info("Recebida requisicao para criar usuario: {}", request.getEmail());
-            UsuarioResponseDTO response = usuarioService.criarUsuario(request);
+            logger.info("Recebida requisicao para criar usuario: {} pelo usuario: {}", request.getEmail(), usuarioId);
+            UsuarioResponseDTO response = usuarioService.criarUsuario(request, usuarioId);
             logger.info("Usuario criado com sucesso: {}", response.getEmail());
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (RuntimeException e) {
@@ -91,10 +93,12 @@ public class UsuarioController {
 
     @PutMapping("/{id}/inativar")
     @Operation(summary = "Inativar usuario", description = "Inativa um usuario pelo ID")
-    public ResponseEntity<Void> inativarUsuario(@PathVariable Long id) {
+    public ResponseEntity<Void> inativarUsuario(
+            @PathVariable Long id,
+            @RequestHeader("usuario-id") Long usuarioId) {
         try {
-            logger.info("Recebida requisicao para inativar usuario ID: {}", id);
-            usuarioService.inativarUsuario(id);
+            logger.info("Recebida requisicao para inativar usuario ID: {} pelo usuario: {}", id, usuarioId);
+            usuarioService.inativarUsuario(id, usuarioId);
             return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
             logger.warn("Erro ao inativar usuario ID {}: {}", id, e.getMessage());
@@ -104,10 +108,12 @@ public class UsuarioController {
 
     @PutMapping("/{id}/ativar")
     @Operation(summary = "Ativar usuario", description = "Ativa um usuario pelo ID")
-    public ResponseEntity<Void> ativarUsuario(@PathVariable Long id) {
+    public ResponseEntity<Void> ativarUsuario(
+            @PathVariable Long id,
+            @RequestHeader("usuario-id") Long usuarioId) {
         try {
-            logger.info("Recebida requisicao para ativar usuario ID: {}", id);
-            usuarioService.ativarUsuario(id);
+            logger.info("Recebida requisicao para ativar usuario ID: {} pelo usuario: {}", id, usuarioId);
+            usuarioService.ativarUsuario(id, usuarioId);
             return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
             logger.warn("Erro ao ativar usuario ID {}: {}", id, e.getMessage());

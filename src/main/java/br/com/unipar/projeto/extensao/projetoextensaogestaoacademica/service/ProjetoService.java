@@ -10,6 +10,7 @@ import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.model.enums
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.model.enums.StatusProjeto;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.repository.ProjetoRepository;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.repository.UsuarioRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -25,10 +26,17 @@ public class ProjetoService {
     private static final Logger logger = LoggerFactory.getLogger(ProjetoService.class);
     private final ProjetoRepository projetoRepository;
     private final UsuarioRepository usuarioRepository;
+    private final AuditoriaService auditoriaService;
+    private final HttpServletRequest request;
 
-    public ProjetoService(ProjetoRepository projetoRepository, UsuarioRepository usuarioRepository) {
+    public ProjetoService(ProjetoRepository projetoRepository,
+                          UsuarioRepository usuarioRepository,
+                          AuditoriaService auditoriaService,
+                          HttpServletRequest request) {
         this.projetoRepository = projetoRepository;
         this.usuarioRepository = usuarioRepository;
+        this.auditoriaService = auditoriaService;
+        this.request = request;
     }
 
     public ProjetoResponseDTO criarProjeto(CriarProjetoRequestDTO request, Long usuarioCriadorId) {
@@ -52,6 +60,7 @@ public class ProjetoService {
                 throw new RuntimeException("Usuários com perfil CONSULTA não podem criar projetos");
             }
 
+
         // Cria o projeto
         Projeto projeto = new Projeto(
                 request.getTitulo(),
@@ -64,7 +73,18 @@ public class ProjetoService {
         projeto.setDataPrevistaTermino(request.getDataPrevistaTermino());
 
         Projeto projetoSalvo = projetoRepository.save(projeto);
-        logger.info("Projeto criado com ID: {}", projetoSalvo.getId());
+        logger.info("Projeto criado com sucesso com ID: {}", projetoSalvo.getId());
+
+        // Redistra na auditoria
+        auditoriaService.registrarAlteracao(
+                "PROJETO",
+                projetoSalvo.getId(),
+                "CREATE",
+                null,
+                projetoSalvo,
+                usuarioCriadorId,
+                this.request
+        );
 
         // Leva para método auxiliar passar para DTO antes de salvar
         return converterParaDTO(projetoSalvo, usuarioCriador.getNome());
@@ -174,14 +194,18 @@ public class ProjetoService {
         }
     }
 
-    public ProjetoResponseDTO atualizarStatusProjeto(Long id, StatusProjeto novoStatus) {
-        logger.info("Atualizando status do projeto ID: {} para {}", id, novoStatus);
+    public ProjetoResponseDTO atualizarStatusProjeto(Long id, StatusProjeto novoStatus, Long usuarioId) {
+        logger.info("Atualizando status do projeto ID: {} para {} pelo usuario: {}", id, novoStatus, usuarioId);
 
         Projeto projeto = projetoRepository.findById(id)
                 .orElseThrow(() -> {
                     logger.warn("Tentativa de atualizar status. Projeto nao encontrado com ID: {}", id);
                     return new RuntimeException("Projeto nao encontrado com ID: " + id);
                 });
+
+        Projeto projetoAntigo = new Projeto();
+        projetoAntigo.setStatus(projeto.getStatus());
+        projetoAntigo.setDataInicio(projeto.getDataInicio());
 
         validarTransicaoStatus(projeto.getStatus(), novoStatus);
 
@@ -198,6 +222,18 @@ public class ProjetoService {
         }
 
         Projeto projetoAtualizado = projetoRepository.save(projeto);
+
+        // Registra na auditoria
+        auditoriaService.registrarAlteracao(
+                "PROJETO",
+                projetoAtualizado.getId(),
+                "UPDATE",
+                projetoAntigo,
+                projetoAtualizado,
+                usuarioId,
+                this.request
+        );
+
         logger.info("Status do projeto atualizado: {}", projetoAtualizado.getStatus());
 
         String nomeUsuarioCriador = obterNomeUsuarioCriador(projeto.getUsuarioCriadorId());
@@ -307,8 +343,8 @@ public class ProjetoService {
         }
     }
 
-    public void excluirProjeto(Long id) {
-        logger.info("Excluindo projeto ID: {}", id);
+    public void excluirProjeto(Long id, Long usuarioId) {
+        logger.info("Excluindo projeto ID: {} pelo usuario: {}", id, usuarioId);
 
         Projeto projeto = projetoRepository.findById(id)
                 .orElseThrow(() -> {
@@ -325,6 +361,17 @@ public class ProjetoService {
         // if (alunoProjetoRepository.existsByProjetoId(id)) {
         //     throw new RuntimeException("Não é possível excluir projeto com alunos vinculados");
         // }
+
+        // Registra na auditoria antes de excluir
+        auditoriaService.registrarAlteracao(
+                "PROJETO",
+                projeto.getId(),
+                "DELETE",
+                projeto, // Valores antigos (o projeto completo)
+                null, // Valores novos (nulo para DELETE)
+                usuarioId,
+                this.request
+        );
 
         projetoRepository.delete(projeto);
         logger.info("Projeto excluido: {}", projeto.getTitulo());

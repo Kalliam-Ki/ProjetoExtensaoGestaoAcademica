@@ -1,10 +1,11 @@
 package br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.service;
 
-import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.dto.request.UsuarioRequestDTO;
+import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.dto.request.CriarUsuarioRequestDTO;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.dto.response.UsuarioResponseDTO;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.model.entity.Usuario;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.model.enums.PerfilUsuario;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.repository.UsuarioRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -18,28 +19,45 @@ public class UsuarioService {
     // Logger para logs melhores e facilitar no debug
     private static final Logger logger = LoggerFactory.getLogger(UsuarioService.class);
     private final UsuarioRepository usuarioRepository;
+    private final AuditoriaService auditoriaService;
+    private final HttpServletRequest request;
 
-    public UsuarioService(UsuarioRepository usuarioRepository) {
+    public UsuarioService(UsuarioRepository usuarioRepository,
+                          AuditoriaService auditoriaService,
+                          HttpServletRequest request) {
         this.usuarioRepository = usuarioRepository;
+        this.auditoriaService = auditoriaService;
+        this.request = request;
     }
 
-    public UsuarioResponseDTO criarUsuario(UsuarioRequestDTO request) {
-        logger.info("Criando usuario: {}", request.getEmail());
+    public UsuarioResponseDTO criarUsuario(CriarUsuarioRequestDTO requestDTO, Long usuarioCriadorId) {
+        logger.info("Criando usuario: {}", requestDTO.getEmail());
 
-        if (usuarioRepository.existsByEmail(request.getEmail())) {
-            logger.warn("Tentativa de criar usuario com email ja existente: {}", request.getEmail());
-            throw new RuntimeException("Ja existe um usuario com este email: " + request.getEmail());
+        if (usuarioRepository.existsByEmail(requestDTO.getEmail())) {
+            logger.warn("Tentativa de criar usuario com email ja existente: {}", requestDTO.getEmail());
+            throw new RuntimeException("Ja existe um usuario com este email: " + requestDTO.getEmail());
         }
 
         Usuario usuario = new Usuario(
-                request.getNome(),
-                request.getEmail(),
-                request.getSenha(),
-                request.getPerfil()
+                requestDTO.getNome(),
+                requestDTO.getEmail(),
+                requestDTO.getSenha(),
+                requestDTO.getPerfil()
         );
 
         Usuario usuarioSalvo = usuarioRepository.save(usuario);
         logger.info("Usuario criado com ID: {}", usuarioSalvo.getId());
+
+        // Registra na auditoria
+        auditoriaService.registrarAlteracao(
+                "USUARIO",
+                usuarioSalvo.getId(),
+                "CREATE",
+                null, // Valores antigos (não existem para CREATE)
+                usuarioSalvo, // Valores novos
+                usuarioCriadorId,
+                request
+        );
 
         // Irá mandar as infos para o último método
         // Convertendo as infos para dto e salvando de fato
@@ -96,7 +114,7 @@ public class UsuarioService {
                 .collect(Collectors.toList());
     }
 
-    public void inativarUsuario(Long id) {
+    public void inativarUsuario(Long id, Long usuarioId) {
         logger.info("Inativando usuario ID: {}", id);
 
         Usuario usuario = usuarioRepository.findById(id)
@@ -105,13 +123,28 @@ public class UsuarioService {
                     return new RuntimeException("Usuario nao encontrado com ID: " + id);
                 });
 
+        // Salva estado antigo para auditoria
+        Usuario usuarioAntigo = new Usuario();
+        usuarioAntigo.setAtivo(usuario.getAtivo());
+
         usuario.setAtivo(false);
         usuarioRepository.save(usuario);
+
+        // Registra na auditoria
+        auditoriaService.registrarAlteracao(
+                "USUARIO",
+                usuario.getId(),
+                "UPDATE",
+                usuarioAntigo, // Valores antigos (apenas o campo alterado)
+                usuario, // Valores novos
+                usuarioId,
+                request
+        );
 
         logger.info("Usuario inativado: {}", usuario.getEmail());
     }
 
-    public void ativarUsuario(Long id) {
+    public void ativarUsuario(Long id, Long usuarioId) {
         logger.info("Ativando usuario ID: {}", id);
 
         Usuario usuario = usuarioRepository.findById(id)
@@ -120,8 +153,23 @@ public class UsuarioService {
                     return new RuntimeException("Usuario nao encontrado com ID: " + id);
                 });
 
+        // Salva estado antigo para auditoria
+        Usuario usuarioAntigo = new Usuario();
+        usuarioAntigo.setAtivo(usuario.getAtivo());
+
         usuario.setAtivo(true);
         usuarioRepository.save(usuario);
+
+        // Registra na auditoria
+        auditoriaService.registrarAlteracao(
+                "USUARIO",
+                usuario.getId(),
+                "UPDATE",
+                usuarioAntigo,
+                usuario,
+                usuarioId,
+                request
+        );
 
         logger.info("Usuario ativado: {}", usuario.getEmail());
     }

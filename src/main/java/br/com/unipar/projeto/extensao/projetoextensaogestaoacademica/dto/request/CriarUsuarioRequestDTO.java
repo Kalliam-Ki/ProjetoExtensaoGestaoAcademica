@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-public class UsuarioRequestDTO {
+public class CriarUsuarioRequestDTO {
 
     // Colocado contra medidas para garantir que código não
     // irá quebrar
@@ -28,11 +28,11 @@ public class UsuarioRequestDTO {
     private PerfilUsuario perfil;
 
     // Construtor padrão
-    public UsuarioRequestDTO() {
+    public CriarUsuarioRequestDTO() {
     }
 
     // Construtor com parâmetros
-    public UsuarioRequestDTO(String nome, String email, String senha, PerfilUsuario perfil) {
+    public CriarUsuarioRequestDTO(String nome, String email, String senha, PerfilUsuario perfil) {
         this.nome = nome;
         this.email = email;
         this.senha = senha;
