@@ -13,20 +13,20 @@ public class Projeto {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 100)
+    @Column(name = "titulo", nullable = false, length = 100)
     private String titulo;
 
-    @Column(length = 500)
+    @Column(name = "descricao", length = 500)
     private String descricao;
 
-    @Column(nullable = false, length = 100)
+    @Column(name = "orientador", nullable = false, length = 100)
     private String orientador;
 
-    @Column(nullable = false, length = 50)
+    @Column(name = "area", nullable = false, length = 50)
     private String area;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(name = "status", nullable = false, length = 20)
     private StatusProjeto status;
 
     @Column(name = "data_inicio")

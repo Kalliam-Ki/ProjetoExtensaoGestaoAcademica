@@ -1,9 +1,5 @@
--- Script de Criação do Banco de Dados - Sistema de Gestão de Projetos Acadêmicos
--- PostgreSQL 12+
 
--- =============================================
--- 1. CRIAR BANCO DE DADOS
--- =============================================
+-- Criação do Banco de Dados
 
 CREATE DATABASE gestaoacademica
     WITH 
@@ -17,18 +13,16 @@ CREATE DATABASE gestaoacademica
 -- Conectar ao banco criado
 \c gestaoacademica;
 
--- =============================================
--- 2. CRIAR ENUMS (Tipos customizados)
--- =============================================
+
+-- Criação dos Enums
 
 CREATE TYPE perfil_usuario AS ENUM ('ADMINISTRADOR', 'COORDENADOR', 'CONSULTA');
 CREATE TYPE status_projeto AS ENUM ('RASCUNHO', 'SUBMETIDO', 'EM_ANALISE', 'APROVADO', 'EM_ANDAMENTO', 'CONCLUIDO');
 
--- =============================================
--- 3. CRIAR TABELAS (SEM DADOS INICIAIS)
--- =============================================
 
--- Tabela: usuarios
+-- Criação das tabelas
+
+-- Tabela usuarios
 CREATE TABLE usuarios (
     id BIGSERIAL PRIMARY KEY,
     nome VARCHAR(100) NOT NULL,
@@ -40,7 +34,7 @@ CREATE TABLE usuarios (
     data_atualizacao TIMESTAMP
 );
 
--- Tabela: projetos
+-- Tabela projetos
 CREATE TABLE projetos (
     id BIGSERIAL PRIMARY KEY,
     titulo VARCHAR(100) NOT NULL,
@@ -57,7 +51,7 @@ CREATE TABLE projetos (
         FOREIGN KEY (usuario_criador_id) REFERENCES usuarios(id)
 );
 
--- Tabela: alunos
+-- Tabela alunos
 CREATE TABLE alunos (
     id BIGSERIAL PRIMARY KEY,
     nome VARCHAR(100) NOT NULL,
@@ -73,7 +67,7 @@ CREATE TABLE alunos (
         FOREIGN KEY (usuario_criador_id) REFERENCES usuarios(id)
 );
 
--- Tabela: aluno_projeto (Relacionamento muitos-para-muitos)
+-- Tabela aluno_projeto (Relacionamento muitos-para-muitos)
 CREATE TABLE aluno_projeto (
     id BIGSERIAL PRIMARY KEY,
     aluno_id BIGINT NOT NULL,
@@ -95,7 +89,7 @@ CREATE TABLE aluno_projeto (
         UNIQUE (aluno_id, projeto_id)
 );
 
--- Tabela: log_alteracoes (Auditoria)
+-- Tabela log_alteracoes (Auditoria)
 CREATE TABLE log_alteracoes (
     id BIGSERIAL PRIMARY KEY,
     tabela_afetada VARCHAR(50) NOT NULL,
@@ -110,22 +104,21 @@ CREATE TABLE log_alteracoes (
         FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
 );
 
--- =============================================
--- 4. CRIAR ÍNDICES PARA MELHOR PERFORMANCE
--- =============================================
 
--- Índices para usuarios
+-- Criação de Índices
+
+-- Para usuarios
 CREATE INDEX idx_usuarios_email ON usuarios(email);
 CREATE INDEX idx_usuarios_perfil ON usuarios(perfil);
 CREATE INDEX idx_usuarios_ativo ON usuarios(ativo);
 
--- Índices para projetos
+-- Para projetos
 CREATE INDEX idx_projetos_status ON projetos(status);
 CREATE INDEX idx_projetos_area ON projetos(area);
 CREATE INDEX idx_projetos_usuario_criador ON projetos(usuario_criador_id);
 CREATE INDEX idx_projetos_data_prevista_termino ON projetos(data_prevista_termino);
 
--- Índices para alunos
+-- Para alunos
 CREATE INDEX idx_alunos_matricula ON alunos(matricula);
 CREATE INDEX idx_alunos_email ON alunos(email);
 CREATE INDEX idx_alunos_curso ON alunos(curso);
@@ -133,22 +126,21 @@ CREATE INDEX idx_alunos_periodo ON alunos(periodo);
 CREATE INDEX idx_alunos_ativo ON alunos(ativo);
 CREATE INDEX idx_alunos_usuario_criador ON alunos(usuario_criador_id);
 
--- Índices para aluno_projeto
+-- Para aluno_projeto
 CREATE INDEX idx_aluno_projeto_aluno_id ON aluno_projeto(aluno_id);
 CREATE INDEX idx_aluno_projeto_projeto_id ON aluno_projeto(projeto_id);
 CREATE INDEX idx_aluno_projeto_ativo ON aluno_projeto(ativo);
 CREATE INDEX idx_aluno_projeto_data_vinculacao ON aluno_projeto(data_vinculacao);
 
--- Índices para log_alteracoes
+-- Para log_alteracoes
 CREATE INDEX idx_log_alteracoes_tabela ON log_alteracoes(tabela_afetada);
 CREATE INDEX idx_log_alteracoes_registro ON log_alteracoes(id_registro_afetado);
 CREATE INDEX idx_log_alteracoes_usuario ON log_alteracoes(usuario_id);
 CREATE INDEX idx_log_alteracoes_data ON log_alteracoes(data_alteracao);
 CREATE INDEX idx_log_alteracoes_acao ON log_alteracoes(acao);
 
--- =============================================
--- 5. CRIAR FUNÇÃO PARA VALIDAR VÍNCULO ÚNICO ATIVO
--- =============================================
+
+-- Criação de Validadores
 
 CREATE OR REPLACE FUNCTION validar_vinculo_unico_ativo()
 RETURNS TRIGGER AS $$
@@ -173,9 +165,8 @@ CREATE TRIGGER tr_validar_vinculo_unico_ativo
     FOR EACH ROW
     EXECUTE FUNCTION validar_vinculo_unico_ativo();
 
--- =============================================
--- 6. INSERIR APENAS USUÁRIOS ADMIN (OBRIGATÓRIO)
--- =============================================
+
+-- Inserção de usuários ADMINs
 
 -- Inserir APENAS usuários essenciais (sem projetos/alunos pré-criados)
 INSERT INTO usuarios (nome, email, senha, perfil, ativo) VALUES
@@ -183,9 +174,8 @@ INSERT INTO usuarios (nome, email, senha, perfil, ativo) VALUES
 ('Coordenador de TI', 'coordenador.ti@universidade.edu', '123456', 'COORDENADOR', true),
 ('Usuário Consulta', 'consulta@universidade.edu', '123456', 'CONSULTA', true);
 
--- =============================================
--- 7. CRIAR VISUALIZAÇÕES ÚTEIS
--- =============================================
+
+-- Criação de Visualizações
 
 -- View: Projetos com contagem de alunos
 CREATE VIEW vw_projetos_com_alunos AS

@@ -11,19 +11,19 @@ public class Aluno {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 100)
+    @Column(name = "nome", nullable = false, length = 100)
     private String nome;
 
-    @Column(nullable = false, unique = true, length = 20)
+    @Column(name = "matricula", nullable = false, unique = true, length = 20)
     private String matricula;
 
-    @Column(nullable = false, length = 50)
+    @Column(name = "curso", nullable = false, length = 50)
     private String curso;
 
-    @Column(nullable = false, length = 100)
+    @Column(name = "email", nullable = false, length = 100)
     private String email;
 
-    @Column(nullable = false)
+    @Column(name = "periodo", nullable = false)
     private Integer periodo;
 
     @Column(name = "data_criacao", nullable = false)
@@ -35,7 +35,7 @@ public class Aluno {
     @Column(name = "usuario_criador_id", nullable = false)
     private Long usuarioCriadorId;
 
-    @Column(nullable = false)
+    @Column(name = "ativo", nullable = false)
     private Boolean ativo = true;
 
 

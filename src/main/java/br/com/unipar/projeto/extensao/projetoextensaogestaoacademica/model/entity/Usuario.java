@@ -12,20 +12,20 @@ public class Usuario {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 100)
+    @Column(name = "nome", nullable = false, length = 100)
     private String nome;
 
-    @Column(nullable = false, unique = true, length = 100)
+    @Column(name = "email", nullable = false, unique = true, length = 100)
     private String email;
 
-    @Column(nullable = false, length = 255)
+    @Column(name = "senha", nullable = false, length = 255)
     private String senha;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(name = "perfil", nullable = false, length = 20)
     private PerfilUsuario perfil;
 
-    @Column(nullable = false)
+    @Column(name = "ativo", nullable = false)
     private Boolean ativo = true;
 
     @Column(name = "data_criacao", nullable = false)

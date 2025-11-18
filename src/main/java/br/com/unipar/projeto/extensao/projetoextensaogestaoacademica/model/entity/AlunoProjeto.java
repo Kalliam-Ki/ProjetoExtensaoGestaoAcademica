@@ -31,7 +31,7 @@ public class AlunoProjeto {
     @Column(name = "data_desvinculacao")
     private LocalDate dataDesvinculacao;
 
-    @Column(nullable = false)
+    @Column(name = "ativo", nullable = false)
     private Boolean ativo = true;
 
     @Column(name = "data_criacao", nullable = false)
