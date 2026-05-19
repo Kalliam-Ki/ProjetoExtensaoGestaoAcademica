@@ -2,11 +2,14 @@ package br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.service;
 
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.dto.request.VincularAlunoRequestDTO;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.dto.response.AlunoProjetoResponseDTO;
+import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.exception.NegocioException;
+import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.exception.NotFoundException;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.model.entity.Aluno;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.model.entity.AlunoProjeto;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.model.entity.Projeto;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.model.entity.Usuario;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.model.enums.PerfilUsuario;
+import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.model.enums.StatusProjeto;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.repository.AlunoProjetoRepository;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.repository.AlunoRepository;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.repository.ProjetoRepository;
@@ -16,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -50,30 +54,21 @@ public class AlunoProjetoService {
 
         // Valida se o usuário criador existe e tem permissão
         Usuario usuarioCriador = usuarioRepository.findById(usuarioCriadorId)
-                .orElseThrow(() -> {
-                    logger.warn("Usuario criador nao encontrado com ID: {}", usuarioCriadorId);
-                    return new RuntimeException("Usuario criador nao encontrado");
-                });
+                .orElseThrow(() -> new NotFoundException("Usuario criador nao encontrado"));
 
         // Valida permissão para vincular aluno
         validarPermissaoVincularAluno(usuarioCriador);
 
         // Busca aluno e projeto
         Aluno aluno = alunoRepository.findById(request.getAlunoId())
-                .orElseThrow(() -> {
-                    logger.warn("Aluno nao encontrado com ID: {}", request.getAlunoId());
-                    return new RuntimeException("Aluno nao encontrado com ID: " + request.getAlunoId());
-                });
+                .orElseThrow(() -> new NotFoundException("Aluno nao encontrado com ID: " + request.getAlunoId()));
 
         Projeto projeto = projetoRepository.findById(request.getProjetoId())
-                .orElseThrow(() -> {
-                    logger.warn("Projeto nao encontrado com ID: {}", request.getProjetoId());
-                    return new RuntimeException("Projeto nao encontrado com ID: " + request.getProjetoId());
-                });
+                .orElseThrow(() -> new NotFoundException("Projeto nao encontrado com ID: " + request.getProjetoId()));
 
         // Valida se aluno está ativo
         if (!aluno.getAtivo()) {
-            throw new RuntimeException("Nao e possivel vincular aluno inativo");
+            throw new NegocioException("Nao e possivel vincular aluno inativo");
         }
 
         // Valida se projeto está em status adequado para vincular alunos
@@ -81,7 +76,7 @@ public class AlunoProjetoService {
 
         // Valida se já existe vínculo ativo
         if (alunoProjetoRepository.existsByAlunoIdAndProjetoIdAndAtivoTrue(aluno.getId(), projeto.getId())) {
-            throw new RuntimeException("Aluno ja esta vinculado a este projeto");
+            throw new NegocioException("Aluno ja esta vinculado a este projeto");
         }
 
         // Cria o vínculo
@@ -108,7 +103,7 @@ public class AlunoProjetoService {
 
         // Verifica se aluno existe
         if (!alunoRepository.existsById(alunoId)) {
-            throw new RuntimeException("Aluno nao encontrado com ID: " + alunoId);
+            throw new NotFoundException("Aluno nao encontrado com ID: " + alunoId);
         }
 
         List<AlunoProjeto> vinculos = alunoProjetoRepository.findByAlunoId(alunoId);
@@ -124,7 +119,7 @@ public class AlunoProjetoService {
 
         // Verifica se projeto existe
         if (!projetoRepository.existsById(projetoId)) {
-            throw new RuntimeException("Projeto nao encontrado com ID: " + projetoId);
+            throw new NotFoundException("Projeto nao encontrado com ID: " + projetoId);
         }
 
         List<AlunoProjeto> vinculos = alunoProjetoRepository.findByProjetoId(projetoId);
@@ -140,7 +135,7 @@ public class AlunoProjetoService {
 
         // Verifica se aluno existe
         if (!alunoRepository.existsById(alunoId)) {
-            throw new RuntimeException("Aluno nao encontrado com ID: " + alunoId);
+            throw new NotFoundException("Aluno nao encontrado com ID: " + alunoId);
         }
 
         List<AlunoProjeto> vinculos = alunoProjetoRepository.findByAlunoIdAndAtivoTrue(alunoId);
@@ -156,7 +151,7 @@ public class AlunoProjetoService {
 
         // Verifica se projeto existe
         if (!projetoRepository.existsById(projetoId)) {
-            throw new RuntimeException("Projeto nao encontrado com ID: " + projetoId);
+            throw new NotFoundException("Projeto nao encontrado com ID: " + projetoId);
         }
 
         List<AlunoProjeto> vinculos = alunoProjetoRepository.findByProjetoIdAndAtivoTrue(projetoId);
@@ -171,17 +166,14 @@ public class AlunoProjetoService {
         logger.info("Desvinculando aluno do projeto. ID do vinculo: {} pelo usuario: {}", alunoProjetoId, usuarioId);
 
         AlunoProjeto alunoProjeto = alunoProjetoRepository.findById(alunoProjetoId)
-                .orElseThrow(() -> {
-                    logger.warn("Vinculo nao encontrado com ID: {}", alunoProjetoId);
-                    return new RuntimeException("Vinculo nao encontrado com ID: " + alunoProjetoId);
-                });
+                .orElseThrow(() -> new NotFoundException("Vinculo nao encontrado com ID: " + alunoProjetoId));
 
         // Valida se usuário tem permissão para desvincular
         validarPermissaoDesvincularAluno(alunoProjeto, usuarioId);
 
         // Valida se já está desvinculado
         if (!alunoProjeto.getAtivo()) {
-            throw new RuntimeException("Aluno ja esta desvinculado deste projeto");
+            throw new NegocioException("Aluno ja esta desvinculado deste projeto");
         }
 
         // Salva estado antigo para auditoria
@@ -190,7 +182,7 @@ public class AlunoProjetoService {
         alunoProjetoAntigo.setDataDesvinculacao(alunoProjeto.getDataDesvinculacao());
 
         alunoProjeto.setAtivo(false);
-        alunoProjeto.setDataDesvinculacao(java.time.LocalDate.now());
+        alunoProjeto.setDataDesvinculacao(LocalDate.now());
         alunoProjetoRepository.save(alunoProjeto);
 
         // Registra auditoria
@@ -211,22 +203,19 @@ public class AlunoProjetoService {
         logger.info("Reativando vinculo. ID: {} pelo usuario: {}", alunoProjetoId, usuarioId);
 
         AlunoProjeto alunoProjeto = alunoProjetoRepository.findById(alunoProjetoId)
-                .orElseThrow(() -> {
-                    logger.warn("Vinculo nao encontrado com ID: {}", alunoProjetoId);
-                    return new RuntimeException("Vinculo nao encontrado com ID: " + alunoProjetoId);
-                });
+                .orElseThrow(() -> new NotFoundException("Vinculo nao encontrado com ID: " + alunoProjetoId));
 
         // Valida se usuário tem permissão para reativar
         validarPermissaoDesvincularAluno(alunoProjeto, usuarioId);
 
         // Valida se já está ativo
         if (alunoProjeto.getAtivo()) {
-            throw new RuntimeException("Vinculo ja esta ativo");
+            throw new NegocioException("Vinculo ja esta ativo");
         }
 
         // Valida se aluno ainda está ativo
         if (!alunoProjeto.getAluno().getAtivo()) {
-            throw new RuntimeException("Nao e possivel reativar vinculo com aluno inativo");
+            throw new NegocioException("Nao e possivel reativar vinculo com aluno inativo");
         }
 
         // Valida se projeto está em status adequado
@@ -242,14 +231,14 @@ public class AlunoProjetoService {
     // Métodos de validação
     private void validarPermissaoVincularAluno(Usuario usuario) {
         if (usuario.getPerfil() == PerfilUsuario.CONSULTA) {
-            throw new RuntimeException("Usuarios com perfil CONSULTA nao podem vincular alunos a projetos");
+            throw new NegocioException("Usuarios com perfil CONSULTA nao podem vincular alunos a projetos");
         }
         logger.debug("Permissao validada para vincular aluno: {}", usuario.getPerfil());
     }
 
     private void validarPermissaoDesvincularAluno(AlunoProjeto alunoProjeto, Long usuarioId) {
         Usuario usuario = usuarioRepository.findById(usuarioId)
-                .orElseThrow(() -> new RuntimeException("Usuario nao encontrado"));
+                .orElseThrow(() -> new NotFoundException("Usuario nao encontrado"));
 
         // ADMIN pode desvincular qualquer aluno
         if (usuario.getPerfil() == PerfilUsuario.ADMINISTRADOR) {
@@ -259,21 +248,21 @@ public class AlunoProjetoService {
         // COORDENADOR só pode desvincular alunos de projetos que criou
         if (usuario.getPerfil() == PerfilUsuario.COORDENADOR) {
             if (!alunoProjeto.getProjeto().getUsuarioCriadorId().equals(usuarioId)) {
-                throw new RuntimeException("Coordenador so pode desvincular alunos de projetos proprios");
+                throw new NegocioException("Coordenador so pode desvincular alunos de projetos proprios");
             }
             return;
         }
 
         // CONSULTA não pode desvincular
         if (usuario.getPerfil() == PerfilUsuario.CONSULTA) {
-            throw new RuntimeException("Usuario CONSULTA nao tem permissao para desvincular alunos");
+            throw new NegocioException("Usuario CONSULTA nao tem permissao para desvincular alunos");
         }
     }
 
     private void validarStatusProjetoParaVinculo(Projeto projeto) {
-        // Só permite vincular alunos em projetos que estão em andamento ou aprovados
-        if (projeto.getStatus().ordinal() < br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.model.enums.StatusProjeto.APROVADO.ordinal()) {
-            throw new RuntimeException("Nao e possivel vincular alunos a projetos que nao estao aprovados ou em andamento");
+        // Só permite vincular alunos em projetos que estão APROVADOS ou EM_ANDAMENTO
+        if (projeto.getStatus() != StatusProjeto.APROVADO && projeto.getStatus() != StatusProjeto.EM_ANDAMENTO) {
+            throw new NegocioException("Nao e possivel vincular alunos a projetos que nao estao APROVADOS ou EM_ANDAMENTO");
         }
     }
 
@@ -281,7 +270,7 @@ public class AlunoProjetoService {
     private AlunoProjetoResponseDTO converterParaDTO(AlunoProjeto alunoProjeto) {
         if (alunoProjeto == null) {
             logger.error("Tentativa de converter AlunoProjeto nulo para DTO");
-            throw new RuntimeException("AlunoProjeto nao pode ser nulo");
+            throw new NegocioException("AlunoProjeto nao pode ser nulo");
         }
 
         AlunoProjetoResponseDTO dto = new AlunoProjetoResponseDTO();
@@ -300,11 +289,16 @@ public class AlunoProjetoService {
         dto.setUsuarioCriadorId(alunoProjeto.getUsuarioCriadorId());
 
         // Busca nome do usuário criador
-        String nomeUsuarioCriador = usuarioRepository.findById(alunoProjeto.getUsuarioCriadorId())
-                .map(Usuario::getNome)
-                .orElse("Usuario nao encontrado");
+        String nomeUsuarioCriador = obterNomeUsuarioCriador(alunoProjeto.getUsuarioCriadorId());
         dto.setUsuarioCriadorNome(nomeUsuarioCriador);
 
         return dto;
+    }
+
+    // Método auxiliar para buscar nome do usuário criador
+    private String obterNomeUsuarioCriador(Long usuarioCriadorId) {
+        return usuarioRepository.findById(usuarioCriadorId)
+                .map(Usuario::getNome)
+                .orElse("Usuario nao encontrado");
     }
 }

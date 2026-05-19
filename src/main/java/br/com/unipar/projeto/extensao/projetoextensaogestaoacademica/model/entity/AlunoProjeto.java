@@ -43,102 +43,47 @@ public class AlunoProjeto {
     @Column(name = "usuario_criador_id", nullable = false)
     private Long usuarioCriadorId;
 
-
     public AlunoProjeto() {}
-
 
     public AlunoProjeto(Aluno aluno, Projeto projeto, String funcao, Long usuarioCriadorId) {
         this.aluno = aluno;
         this.projeto = projeto;
         this.funcao = funcao;
         this.usuarioCriadorId = usuarioCriadorId;
-        this.dataVinculacao = LocalDate.now();
         this.ativo = true;
-        this.dataCriacao = LocalDateTime.now();
     }
 
+    // Getters e Setters (TODOS necessários)
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public Long getId() {
-        return id;
-    }
+    public Aluno getAluno() { return aluno; }
+    public void setAluno(Aluno aluno) { this.aluno = aluno; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public Projeto getProjeto() { return projeto; }
+    public void setProjeto(Projeto projeto) { this.projeto = projeto; }
 
-    public Aluno getAluno() {
-        return aluno;
-    }
+    public String getFuncao() { return funcao; }
+    public void setFuncao(String funcao) { this.funcao = funcao; }
 
-    public void setAluno(Aluno aluno) {
-        this.aluno = aluno;
-    }
+    public LocalDate getDataVinculacao() { return dataVinculacao; }
+    public void setDataVinculacao(LocalDate dataVinculacao) { this.dataVinculacao = dataVinculacao; }
 
-    public Projeto getProjeto() {
-        return projeto;
-    }
+    public LocalDate getDataDesvinculacao() { return dataDesvinculacao; }
+    public void setDataDesvinculacao(LocalDate dataDesvinculacao) { this.dataDesvinculacao = dataDesvinculacao; }
 
-    public void setProjeto(Projeto projeto) {
-        this.projeto = projeto;
-    }
+    public Boolean getAtivo() { return ativo; }
+    public void setAtivo(Boolean ativo) { this.ativo = ativo; }
 
-    public String getFuncao() {
-        return funcao;
-    }
+    public LocalDateTime getDataCriacao() { return dataCriacao; }
+    public void setDataCriacao(LocalDateTime dataCriacao) { this.dataCriacao = dataCriacao; }
 
-    public void setFuncao(String funcao) {
-        this.funcao = funcao;
-    }
+    public LocalDateTime getDataAtualizacao() { return dataAtualizacao; }
+    public void setDataAtualizacao(LocalDateTime dataAtualizacao) { this.dataAtualizacao = dataAtualizacao; }
 
-    public LocalDate getDataVinculacao() {
-        return dataVinculacao;
-    }
+    public Long getUsuarioCriadorId() { return usuarioCriadorId; }
+    public void setUsuarioCriadorId(Long usuarioCriadorId) { this.usuarioCriadorId = usuarioCriadorId; }
 
-    public void setDataVinculacao(LocalDate dataVinculacao) {
-        this.dataVinculacao = dataVinculacao;
-    }
-
-    public LocalDate getDataDesvinculacao() {
-        return dataDesvinculacao;
-    }
-
-    public void setDataDesvinculacao(LocalDate dataDesvinculacao) {
-        this.dataDesvinculacao = dataDesvinculacao;
-    }
-
-    public Boolean getAtivo() {
-        return ativo;
-    }
-
-    public void setAtivo(Boolean ativo) {
-        this.ativo = ativo;
-    }
-
-    public LocalDateTime getDataCriacao() {
-        return dataCriacao;
-    }
-
-    public void setDataCriacao(LocalDateTime dataCriacao) {
-        this.dataCriacao = dataCriacao;
-    }
-
-    public LocalDateTime getDataAtualizacao() {
-        return dataAtualizacao;
-    }
-
-    public void setDataAtualizacao(LocalDateTime dataAtualizacao) {
-        this.dataAtualizacao = dataAtualizacao;
-    }
-
-    public Long getUsuarioCriadorId() {
-        return usuarioCriadorId;
-    }
-
-    public void setUsuarioCriadorId(Long usuarioCriadorId) {
-        this.usuarioCriadorId = usuarioCriadorId;
-    }
-
-    // Métodos de callback
     @PrePersist
     protected void onCreate() {
         dataCriacao = LocalDateTime.now();

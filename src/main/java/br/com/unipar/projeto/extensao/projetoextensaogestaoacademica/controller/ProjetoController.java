@@ -6,6 +6,7 @@ import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.dto.respons
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.dto.response.ProjetoResumoResponseDTO;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.model.enums.StatusProjeto;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.service.ProjetoService;
+import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.utils.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -26,9 +27,11 @@ public class ProjetoController {
 
     private static final Logger logger = LoggerFactory.getLogger(ProjetoController.class);
     private final ProjetoService projetoService;
+    private final SecurityUtils securityUtils;
 
-    public ProjetoController(ProjetoService projetoService) {
+    public ProjetoController(ProjetoService projetoService, SecurityUtils securityUtils) {
         this.projetoService = projetoService;
+        this.securityUtils = securityUtils;
     }
 
     // @Valid irá fazer com que o spring valide auto o dto antes de mandar
@@ -36,17 +39,12 @@ public class ProjetoController {
     @PostMapping
     @Operation(summary = "Criar projeto", description = "Cria um novo projeto academico")
     public ResponseEntity<ProjetoResponseDTO> criarProjeto(
-            @Valid @RequestBody CriarProjetoRequestDTO request,
-            @RequestHeader("usuario-id") Long usuarioId) {
-        try {
-            logger.info("Recebida requisicao para criar projeto: {} pelo usuario: {}", request.getTitulo(), usuarioId);
-            ProjetoResponseDTO response = projetoService.criarProjeto(request, usuarioId);
-            logger.info("Projeto criado com sucesso: {}", response.getTitulo());
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (RuntimeException e) {
-            logger.error("Erro ao criar projeto: {}", e.getMessage());
-            return ResponseEntity.badRequest().build();
-        }
+            @Valid @RequestBody CriarProjetoRequestDTO request) {
+        Long usuarioId = securityUtils.getUsuarioLogadoId();
+        logger.info("Recebida requisicao para criar projeto: {} pelo usuario: {}", request.getTitulo(), usuarioId);
+        ProjetoResponseDTO response = projetoService.criarProjeto(request, usuarioId);
+        logger.info("Projeto criado com sucesso: {}", response.getTitulo());
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping
@@ -59,30 +57,19 @@ public class ProjetoController {
 
     @PostMapping("/{id}/submeter")
     @Operation(summary = "Submeter projeto", description = "Submete um projeto para analise")
-    public ResponseEntity<ProjetoResponseDTO> submeterProjeto(
-            @PathVariable Long id,
-            @RequestHeader("usuario-id") Long usuarioId) {
-        try {
-            logger.info("Recebida requisicao para submeter projeto ID: {} pelo usuario: {}", id, usuarioId);
-            ProjetoResponseDTO projeto = projetoService.submeterProjeto(id);
-            return ResponseEntity.ok(projeto);
-        } catch (RuntimeException e) {
-            logger.warn("Erro ao submeter projeto ID {}: {}", id, e.getMessage());
-            return ResponseEntity.badRequest().build();
-        }
+    public ResponseEntity<ProjetoResponseDTO> submeterProjeto(@PathVariable Long id) {
+        Long usuarioId = securityUtils.getUsuarioLogadoId();
+        logger.info("Recebida requisicao para submeter projeto ID: {} pelo usuario: {}", id, usuarioId);
+        ProjetoResponseDTO projeto = projetoService.submeterProjeto(id, usuarioId);
+        return ResponseEntity.ok(projeto);
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Buscar projeto por ID", description = "Busca um projeto especifico pelo ID")
     public ResponseEntity<ProjetoResponseDTO> buscarProjetoPorId(@PathVariable Long id) {
-        try {
-            logger.debug("Recebida requisicao para buscar projeto por ID: {}", id);
-            ProjetoResponseDTO projeto = projetoService.buscarProjetoPorId(id);
-            return ResponseEntity.ok(projeto);
-        } catch (RuntimeException e) {
-            logger.warn("Projeto nao encontrado com ID: {}", id);
-            return ResponseEntity.notFound().build();
-        }
+        logger.debug("Recebida requisicao para buscar projeto por ID: {}", id);
+        ProjetoResponseDTO projeto = projetoService.buscarProjetoPorId(id);
+        return ResponseEntity.ok(projeto);
     }
 
     @GetMapping("/status/{status}")
@@ -113,47 +100,31 @@ public class ProjetoController {
     @Operation(summary = "Atualizar projeto", description = "Atualiza um projeto existente")
     public ResponseEntity<ProjetoResponseDTO> atualizarProjeto(
             @PathVariable Long id,
-            @Valid @RequestBody AtualizarProjetoRequestDTO request,
-            @RequestHeader("usuario-id") Long usuarioId) {
-        try {
-            logger.info("Recebida requisicao para atualizar projeto ID: {} pelo usuario: {}", id, usuarioId);
-            ProjetoResponseDTO projeto = projetoService.atualizarProjeto(id, request, usuarioId);
-            return ResponseEntity.ok(projeto);
-        } catch (RuntimeException e) {
-            logger.warn("Erro ao atualizar projeto ID {}: {}", id, e.getMessage());
-            return ResponseEntity.badRequest().build();
-        }
+            @Valid @RequestBody AtualizarProjetoRequestDTO request) {
+        Long usuarioId = securityUtils.getUsuarioLogadoId();
+        logger.info("Recebida requisicao para atualizar projeto ID: {} pelo usuario: {}", id, usuarioId);
+        ProjetoResponseDTO projeto = projetoService.atualizarProjeto(id, request, usuarioId);
+        return ResponseEntity.ok(projeto);
     }
 
     @PatchMapping("/{id}/status")
     @Operation(summary = "Atualizar status do projeto", description = "Atualiza o status de um projeto")
     public ResponseEntity<ProjetoResponseDTO> atualizarStatusProjeto(
             @PathVariable Long id,
-            @RequestParam StatusProjeto status,
-            @RequestHeader("usuario-id") Long usuarioId) {
-        try {
-            logger.info("Recebida requisicao para atualizar status do projeto ID: {} para {} pelo usuario: {}",
-                    id, status, usuarioId);
-            ProjetoResponseDTO projeto = projetoService.atualizarStatusProjeto(id, status, usuarioId);
-            return ResponseEntity.ok(projeto);
-        } catch (RuntimeException e) {
-            logger.warn("Erro ao atualizar status do projeto ID {}: {}", id, e.getMessage());
-            return ResponseEntity.badRequest().build();
-        }
+            @RequestParam StatusProjeto status) {
+        Long usuarioId = securityUtils.getUsuarioLogadoId();
+        logger.info("Recebida requisicao para atualizar status do projeto ID: {} para {} pelo usuario: {}",
+                id, status, usuarioId);
+        ProjetoResponseDTO projeto = projetoService.atualizarStatusProjeto(id, status, usuarioId);
+        return ResponseEntity.ok(projeto);
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Excluir projeto", description = "Exclui um projeto pelo ID")
-    public ResponseEntity<Void> excluirProjeto(
-            @PathVariable Long id,
-            @RequestHeader("usuario-id") Long usuarioId) {
-        try {
-            logger.info("Recebida requisicao para excluir projeto ID: {} pelo usuario: {}", id, usuarioId);
-            projetoService.excluirProjeto(id, usuarioId);
-            return ResponseEntity.noContent().build();
-        } catch (RuntimeException e) {
-            logger.warn("Erro ao excluir projeto ID {}: {}", id, e.getMessage());
-            return ResponseEntity.badRequest().build();
-        }
+    public ResponseEntity<Void> excluirProjeto(@PathVariable Long id) {
+        Long usuarioId = securityUtils.getUsuarioLogadoId();
+        logger.info("Recebida requisicao para excluir projeto ID: {} pelo usuario: {}", id, usuarioId);
+        projetoService.excluirProjeto(id, usuarioId);
+        return ResponseEntity.noContent().build();
     }
 }

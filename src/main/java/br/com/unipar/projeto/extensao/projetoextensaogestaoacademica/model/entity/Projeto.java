@@ -55,7 +55,6 @@ public class Projeto {
         this.area = area;
         this.status = StatusProjeto.RASCUNHO;
         this.usuarioCriadorId = usuarioCriadorId;
-        this.dataCriacao = LocalDateTime.now();
     }
 
     // Getters e Setters

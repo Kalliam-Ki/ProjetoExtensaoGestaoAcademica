@@ -3,6 +3,8 @@ package br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.service;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.dto.request.CriarAlunoRequestDTO;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.dto.request.AtualizarAlunoRequestDTO;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.dto.response.AlunoResponseDTO;
+import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.exception.NegocioException;
+import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.exception.NotFoundException;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.model.entity.Aluno;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.model.entity.Usuario;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.model.enums.PerfilUsuario;
@@ -40,22 +42,19 @@ public class AlunoService {
 
         // Valida se o usuário criador existe e tem permissão
         Usuario usuarioCriador = usuarioRepository.findById(usuarioCriadorId)
-                .orElseThrow(() -> {
-                    logger.warn("Usuario criador nao encontrado com ID: {}", usuarioCriadorId);
-                    return new RuntimeException("Usuario criador nao encontrado");
-                });
+                .orElseThrow(() -> new NotFoundException("Usuario criador nao encontrado"));
 
         // Valida permissão para criar aluno
         validarPermissaoCriarAluno(usuarioCriador);
 
         // Valida se matrícula já existe
         if (alunoRepository.existsByMatricula(request.getMatricula())) {
-            throw new RuntimeException("Ja existe um aluno com esta matricula: " + request.getMatricula());
+            throw new NegocioException("Ja existe um aluno com esta matricula: " + request.getMatricula());
         }
 
         // Valida se email já existe
         if (alunoRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Ja existe um aluno com este email: " + request.getEmail());
+            throw new NegocioException("Ja existe um aluno com este email: " + request.getEmail());
         }
 
         // Valida período
@@ -92,10 +91,7 @@ public class AlunoService {
         logger.debug("Buscando aluno por ID: {}", id);
 
         Aluno aluno = alunoRepository.findById(id)
-                .orElseThrow(() -> {
-                    logger.warn("Aluno nao encontrado com ID: {}", id);
-                    return new RuntimeException("Aluno nao encontrado com ID: " + id);
-                });
+                .orElseThrow(() -> new NotFoundException("Aluno nao encontrado com ID: " + id));
 
         String nomeUsuarioCriador = obterNomeUsuarioCriador(aluno.getUsuarioCriadorId());
         return converterParaDTO(aluno, nomeUsuarioCriador);
@@ -105,10 +101,7 @@ public class AlunoService {
         logger.debug("Buscando aluno por matricula: {}", matricula);
 
         Aluno aluno = alunoRepository.findByMatricula(matricula)
-                .orElseThrow(() -> {
-                    logger.warn("Aluno nao encontrado com matricula: {}", matricula);
-                    return new RuntimeException("Aluno nao encontrado com matricula: " + matricula);
-                });
+                .orElseThrow(() -> new NotFoundException("Aluno nao encontrado com matricula: " + matricula));
 
         String nomeUsuarioCriador = obterNomeUsuarioCriador(aluno.getUsuarioCriadorId());
         return converterParaDTO(aluno, nomeUsuarioCriador);
@@ -164,10 +157,7 @@ public class AlunoService {
         logger.info("Atualizando aluno ID: {} pelo usuario: {}", id, usuarioId);
 
         Aluno aluno = alunoRepository.findById(id)
-                .orElseThrow(() -> {
-                    logger.warn("Aluno nao encontrado com ID: {}", id);
-                    return new RuntimeException("Aluno nao encontrado com ID: " + id);
-                });
+                .orElseThrow(() -> new NotFoundException("Aluno nao encontrado com ID: " + id));
 
         // Valida se usuário tem permissão para editar
         validarPermissaoEdicaoAluno(aluno, usuarioId);
@@ -176,7 +166,7 @@ public class AlunoService {
         if (alunoRepository.findByEmail(request.getEmail())
                 .filter(a -> !a.getId().equals(id))
                 .isPresent()) {
-            throw new RuntimeException("Ja existe outro aluno com este email: " + request.getEmail());
+            throw new NegocioException("Ja existe outro aluno com este email: " + request.getEmail());
         }
 
         // Valida período
@@ -199,10 +189,7 @@ public class AlunoService {
         logger.info("Inativando aluno ID: {} pelo usuario: {}", id, usuarioId);
 
         Aluno aluno = alunoRepository.findById(id)
-                .orElseThrow(() -> {
-                    logger.warn("Tentativa de inativar aluno nao encontrado com ID: {}", id);
-                    return new RuntimeException("Aluno nao encontrado com ID: " + id);
-                });
+                .orElseThrow(() -> new NotFoundException("Aluno nao encontrado com ID: " + id));
 
         validarPermissaoEdicaoAluno(aluno, usuarioId);
 
@@ -230,10 +217,7 @@ public class AlunoService {
         logger.info("Ativando aluno ID: {} pelo usuario: {}", id, usuarioId);
 
         Aluno aluno = alunoRepository.findById(id)
-                .orElseThrow(() -> {
-                    logger.warn("Tentativa de ativar aluno nao encontrado com ID: {}", id);
-                    return new RuntimeException("Aluno nao encontrado com ID: " + id);
-                });
+                .orElseThrow(() -> new NotFoundException("Aluno nao encontrado com ID: " + id));
 
         validarPermissaoEdicaoAluno(aluno, usuarioId);
 
@@ -246,14 +230,14 @@ public class AlunoService {
     // Métodos de validação
     private void validarPermissaoCriarAluno(Usuario usuario) {
         if (usuario.getPerfil() == PerfilUsuario.CONSULTA) {
-            throw new RuntimeException("Usuarios com perfil CONSULTA nao podem criar alunos");
+            throw new NegocioException("Usuarios com perfil CONSULTA nao podem criar alunos");
         }
         logger.debug("Permissao validada para criar aluno: {}", usuario.getPerfil());
     }
 
     private void validarPermissaoEdicaoAluno(Aluno aluno, Long usuarioId) {
         Usuario usuario = usuarioRepository.findById(usuarioId)
-                .orElseThrow(() -> new RuntimeException("Usuario nao encontrado"));
+                .orElseThrow(() -> new NotFoundException("Usuario nao encontrado"));
 
         // ADMIN pode editar qualquer aluno
         if (usuario.getPerfil() == PerfilUsuario.ADMINISTRADOR) {
@@ -263,18 +247,18 @@ public class AlunoService {
         // COORDENADOR só pode editar alunos que criou
         if (usuario.getPerfil() == PerfilUsuario.COORDENADOR &&
                 !aluno.getUsuarioCriadorId().equals(usuarioId)) {
-            throw new RuntimeException("Coordenador so pode editar alunos proprios");
+            throw new NegocioException("Coordenador so pode editar alunos proprios");
         }
 
         // CONSULTA não pode editar
         if (usuario.getPerfil() == PerfilUsuario.CONSULTA) {
-            throw new RuntimeException("Usuario CONSULTA nao tem permissao para editar alunos");
+            throw new NegocioException("Usuario CONSULTA nao tem permissao para editar alunos");
         }
     }
 
     private void validarPeriodo(Integer periodo) {
         if (periodo == null || periodo < 1 || periodo > 12) {
-            throw new RuntimeException("Periodo deve ser um valor entre 1 e 12");
+            throw new NegocioException("Periodo deve ser um valor entre 1 e 12");
         }
     }
 
@@ -282,7 +266,7 @@ public class AlunoService {
     private AlunoResponseDTO converterParaDTO(Aluno aluno, String nomeUsuarioCriador) {
         if (aluno == null) {
             logger.error("Tentativa de converter aluno nulo para DTO");
-            throw new RuntimeException("Aluno nao pode ser nulo");
+            throw new NegocioException("Aluno nao pode ser nulo");
         }
 
         AlunoResponseDTO dto = new AlunoResponseDTO();

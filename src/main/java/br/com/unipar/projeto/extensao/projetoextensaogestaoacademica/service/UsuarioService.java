@@ -2,12 +2,15 @@ package br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.service;
 
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.dto.request.CriarUsuarioRequestDTO;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.dto.response.UsuarioResponseDTO;
+import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.exception.NegocioException;
+import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.exception.NotFoundException;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.model.entity.Usuario;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.model.enums.PerfilUsuario;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.repository.UsuarioRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -21,27 +24,67 @@ public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final AuditoriaService auditoriaService;
     private final HttpServletRequest request;
+    private final PasswordEncoder passwordEncoder;
 
     public UsuarioService(UsuarioRepository usuarioRepository,
                           AuditoriaService auditoriaService,
-                          HttpServletRequest request) {
+                          HttpServletRequest request,
+                          PasswordEncoder passwordEncoder) {
         this.usuarioRepository = usuarioRepository;
         this.auditoriaService = auditoriaService;
         this.request = request;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    // Método para criar o primeiro administrador (sem validação de permissão e sem auditoria)
+    public UsuarioResponseDTO criarPrimeiroAdmin(CriarUsuarioRequestDTO requestDTO) {
+        logger.info("Criando primeiro administrador: {}", requestDTO.getEmail());
+
+        if (usuarioRepository.count() > 0) {
+            throw new NegocioException("Já existem usuários cadastrados. Este endpoint é apenas para inicialização.");
+        }
+
+        if (usuarioRepository.existsByEmail(requestDTO.getEmail())) {
+            throw new NegocioException("Ja existe um usuario com este email: " + requestDTO.getEmail());
+        }
+
+        String senhaCriptografada = passwordEncoder.encode(requestDTO.getSenha());
+
+        Usuario usuario = new Usuario(
+                requestDTO.getNome(),
+                requestDTO.getEmail(),
+                senhaCriptografada,
+                PerfilUsuario.ADMINISTRADOR  // Força perfil ADMIN
+        );
+
+        Usuario usuarioSalvo = usuarioRepository.save(usuario);
+        logger.info("Administrador criado com ID: {}", usuarioSalvo.getId());
+
+        // Não registra auditoria pois é o primeiro usuário (não há quem o tenha criado)
+        return converterParaDTO(usuarioSalvo);
     }
 
     public UsuarioResponseDTO criarUsuario(CriarUsuarioRequestDTO requestDTO, Long usuarioCriadorId) {
         logger.info("Criando usuario: {}", requestDTO.getEmail());
 
+        // Permissão: apenas ADMIN pode criar outros usuários
+        Usuario criador = usuarioRepository.findById(usuarioCriadorId)
+                .orElseThrow(() -> new NotFoundException("Usuario criador nao encontrado"));
+        if (criador.getPerfil() != PerfilUsuario.ADMINISTRADOR) {
+            throw new NegocioException("Apenas administradores podem criar novos usuarios");
+        }
+
         if (usuarioRepository.existsByEmail(requestDTO.getEmail())) {
             logger.warn("Tentativa de criar usuario com email ja existente: {}", requestDTO.getEmail());
-            throw new RuntimeException("Ja existe um usuario com este email: " + requestDTO.getEmail());
+            throw new NegocioException("Ja existe um usuario com este email: " + requestDTO.getEmail());
         }
+
+        String senhaCriptografada = passwordEncoder.encode(requestDTO.getSenha());
 
         Usuario usuario = new Usuario(
                 requestDTO.getNome(),
                 requestDTO.getEmail(),
-                requestDTO.getSenha(),
+                senhaCriptografada,
                 requestDTO.getPerfil()
         );
 
@@ -81,7 +124,7 @@ public class UsuarioService {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> {
                     logger.warn("Usuario nao encontrado com ID: {}", id);
-                    return new RuntimeException("Usuario nao encontrado com ID: " + id);
+                    return new NotFoundException("Usuario nao encontrado com ID: " + id);
                 });
 
         // Utiliza o Método de converter para mostrar apenas as informações
@@ -95,7 +138,7 @@ public class UsuarioService {
         Usuario usuario = usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> {
                     logger.warn("Usuario nao encontrado com email: {}", email);
-                    return new RuntimeException("Usuario nao encontrado com email: " + email);
+                    return new NotFoundException("Usuario nao encontrado com email: " + email);
                 });
 
         // Utiliza o Método de converter para mostrar apenas as informações
@@ -120,7 +163,7 @@ public class UsuarioService {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> {
                     logger.warn("Tentativa de inativar. Usuario nao encontrado com ID: {}", id);
-                    return new RuntimeException("Usuario nao encontrado com ID: " + id);
+                    return new NotFoundException("Usuario nao encontrado com ID: " + id);
                 });
 
         // Salva estado antigo para auditoria
@@ -150,7 +193,7 @@ public class UsuarioService {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> {
                     logger.warn("Tentativa de ativar usuario nao encontrado com ID: {}", id);
-                    return new RuntimeException("Usuario nao encontrado com ID: " + id);
+                    return new NotFoundException("Usuario nao encontrado com ID: " + id);
                 });
 
         // Salva estado antigo para auditoria

@@ -4,6 +4,8 @@ import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.dto.request
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.dto.request.CriarProjetoRequestDTO;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.dto.response.ProjetoResponseDTO;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.dto.response.ProjetoResumoResponseDTO;
+import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.exception.NegocioException;
+import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.exception.NotFoundException;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.model.entity.Projeto;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.model.entity.Usuario;
 import br.com.unipar.projeto.extensao.projetoextensaogestaoacademica.model.enums.PerfilUsuario;
@@ -42,24 +44,21 @@ public class ProjetoService {
     public ProjetoResponseDTO criarProjeto(CriarProjetoRequestDTO request, Long usuarioCriadorId) {
         logger.info("Criando projeto: {} para usuario: {}", request.getTitulo(), usuarioCriadorId);
 
-        // Valida se já existe projeto com mesmo título
-        if (projetoRepository.findByTituloContainingIgnoreCase(request.getTitulo()).stream()
-                .anyMatch(p -> p.getTitulo().equalsIgnoreCase(request.getTitulo()))) {
-            throw new RuntimeException("Já existe um projeto com este título");
+        if (projetoRepository.existsByTituloIgnoreCase(request.getTitulo())) {
+            throw new NegocioException("Já existe um projeto com este título");
         }
 
         // Valida se usuário tem permissão para criar projetos
         Usuario usuarioCriador = usuarioRepository.findById(usuarioCriadorId)
                 .orElseThrow(() -> {
                     logger.warn("Usuario criador nao encontrado com ID: {}", usuarioCriadorId);
-                    return new RuntimeException("Usuario criador nao encontrado");
+                    return new NotFoundException("Usuario criador nao encontrado");
                 });
 
-            // Apenas ADMINISTRADOR e COORDENADOR podem criar projetos
-            if (usuarioCriador.getPerfil() == PerfilUsuario.CONSULTA) {
-                throw new RuntimeException("Usuários com perfil CONSULTA não podem criar projetos");
-            }
-
+        // Apenas ADMINISTRADOR e COORDENADOR podem criar projetos
+        if (usuarioCriador.getPerfil() == PerfilUsuario.CONSULTA) {
+            throw new NegocioException("Usuários com perfil CONSULTA não podem criar projetos");
+        }
 
         // Cria o projeto
         Projeto projeto = new Projeto(
@@ -96,7 +95,7 @@ public class ProjetoService {
         Projeto projeto = projetoRepository.findById(id)
                 .orElseThrow(() -> {
                     logger.warn("Projeto nao encontrado com ID: {}", id);
-                    return new RuntimeException("Projeto nao encontrado com ID: " + id);
+                    return new NotFoundException("Projeto nao encontrado com ID: " + id);
                 });
 
         String nomeUsuarioCriador = obterNomeUsuarioCriador(projeto.getUsuarioCriadorId());
@@ -149,7 +148,7 @@ public class ProjetoService {
 
     public ProjetoResponseDTO atualizarProjeto(Long id, AtualizarProjetoRequestDTO request, Long usuarioId) {
         Projeto projeto = projetoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Projeto não encontrado"));
+                .orElseThrow(() -> new NotFoundException("Projeto não encontrado"));
 
         // Valida se usuário tem permissão para editar
         validarPermissaoEdicao(projeto, usuarioId);
@@ -157,8 +156,16 @@ public class ProjetoService {
         // Valida se projeto pode ser editado (apenas RASCUNHO e SUBMETIDO)
         if (projeto.getStatus() != StatusProjeto.RASCUNHO &&
                 projeto.getStatus() != StatusProjeto.SUBMETIDO) {
-            throw new RuntimeException("Projeto não pode ser editado no status atual: " + projeto.getStatus());
+            throw new NegocioException("Projeto não pode ser editado no status atual: " + projeto.getStatus());
         }
+
+        // Clona estado antigo para auditoria
+        Projeto projetoAntigo = new Projeto();
+        projetoAntigo.setTitulo(projeto.getTitulo());
+        projetoAntigo.setDescricao(projeto.getDescricao());
+        projetoAntigo.setOrientador(projeto.getOrientador());
+        projetoAntigo.setArea(projeto.getArea());
+        projetoAntigo.setDataPrevistaTermino(projeto.getDataPrevistaTermino());
 
         // Aplica as atualizações
         projeto.setTitulo(request.getTitulo());
@@ -169,13 +176,24 @@ public class ProjetoService {
 
         Projeto projetoAtualizado = projetoRepository.save(projeto);
 
+        // Registra auditoria
+        auditoriaService.registrarAlteracao(
+                "PROJETO",
+                projeto.getId(),
+                "UPDATE",
+                projetoAntigo,
+                projetoAtualizado,
+                usuarioId,
+                this.request
+        );
+
         String nomeUsuarioCriador = obterNomeUsuarioCriador(projeto.getUsuarioCriadorId());
         return converterParaDTO(projetoAtualizado, nomeUsuarioCriador);
     }
 
     private void validarPermissaoEdicao(Projeto projeto, Long usuarioId) {
         Usuario usuario = usuarioRepository.findById(usuarioId)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+                .orElseThrow(() -> new NotFoundException("Usuário não encontrado"));
 
         // ADMIN pode editar qualquer projeto
         if (usuario.getPerfil() == PerfilUsuario.ADMINISTRADOR) {
@@ -185,12 +203,12 @@ public class ProjetoService {
         // COORDENADOR só pode editar projetos que criou
         if (usuario.getPerfil() == PerfilUsuario.COORDENADOR &&
                 !projeto.getUsuarioCriadorId().equals(usuarioId)) {
-            throw new RuntimeException("Coordenador só pode editar projetos próprios");
+            throw new NegocioException("Coordenador só pode editar projetos próprios");
         }
 
         // CONSULTA não pode editar
         if (usuario.getPerfil() == PerfilUsuario.CONSULTA) {
-            throw new RuntimeException("Usuário CONSULTA não tem permissão para editar projetos");
+            throw new NegocioException("Usuário CONSULTA não tem permissão para editar projetos");
         }
     }
 
@@ -200,7 +218,7 @@ public class ProjetoService {
         Projeto projeto = projetoRepository.findById(id)
                 .orElseThrow(() -> {
                     logger.warn("Tentativa de atualizar status. Projeto nao encontrado com ID: {}", id);
-                    return new RuntimeException("Projeto nao encontrado com ID: " + id);
+                    return new NotFoundException("Projeto nao encontrado com ID: " + id);
                 });
 
         Projeto projetoAntigo = new Projeto();
@@ -247,56 +265,64 @@ public class ProjetoService {
         switch (statusAtual) {
             case RASCUNHO:
                 if (novoStatus != StatusProjeto.SUBMETIDO) {
-                    throw new RuntimeException("Projeto em RASCUNHO so pode ser SUBMETIDO");
+                    throw new NegocioException("Projeto em RASCUNHO so pode ser SUBMETIDO");
                 }
                 break;
 
             case SUBMETIDO:
                 if (novoStatus != StatusProjeto.EM_ANALISE && novoStatus != StatusProjeto.RASCUNHO) {
-                    throw new RuntimeException("Projeto SUBMETIDO so pode voltar para RASCUNHO ou ir para EM_ANALISE");
+                    throw new NegocioException("Projeto SUBMETIDO so pode voltar para RASCUNHO ou ir para EM_ANALISE");
                 }
                 break;
 
             case EM_ANALISE:
                 if (novoStatus != StatusProjeto.APROVADO && novoStatus != StatusProjeto.RASCUNHO) {
-                    throw new RuntimeException("Projeto EM_ANALISE so pode ser APROVADO ou voltar para RASCUNHO");
+                    throw new NegocioException("Projeto EM_ANALISE so pode ser APROVADO ou voltar para RASCUNHO");
                 }
                 break;
 
             case APROVADO:
                 if (novoStatus != StatusProjeto.EM_ANDAMENTO) {
-                    throw new RuntimeException("Projeto APROVADO so pode ir para EM_ANDAMENTO");
+                    throw new NegocioException("Projeto APROVADO so pode ir para EM_ANDAMENTO");
                 }
                 break;
 
             case EM_ANDAMENTO:
                 if (novoStatus != StatusProjeto.CONCLUIDO && novoStatus != StatusProjeto.APROVADO) {
-                    throw new RuntimeException("Projeto EM_ANDAMENTO so pode ser CONCLUIDO ou voltar para APROVADO");
+                    throw new NegocioException("Projeto EM_ANDAMENTO so pode ser CONCLUIDO ou voltar para APROVADO");
                 }
                 break;
 
             case CONCLUIDO:
-                throw new RuntimeException("Projeto CONCLUIDO nao pode ter seu status alterado");
+                throw new NegocioException("Projeto CONCLUIDO nao pode ter seu status alterado");
 
             default:
-                throw new RuntimeException("Status desconhecido: " + statusAtual);
+                throw new NegocioException("Status desconhecido: " + statusAtual);
         }
 
         logger.debug("Transicao de status validada: {} -> {}", statusAtual, novoStatus);
     }
 
-    public ProjetoResponseDTO submeterProjeto(Long id) {
-        logger.info("Submetendo projeto ID: {}", id);
+    public ProjetoResponseDTO submeterProjeto(Long id, Long usuarioId) {
+        logger.info("Submetendo projeto ID: {} pelo usuario: {}", id, usuarioId);
 
         Projeto projeto = projetoRepository.findById(id)
                 .orElseThrow(() -> {
                     logger.warn("Projeto nao encontrado com ID: {}", id);
-                    return new RuntimeException("Projeto nao encontrado com ID: " + id);
+                    return new NotFoundException("Projeto nao encontrado com ID: " + id);
                 });
+
+        // Verifica permissão - apenas criador ou ADMIN podem submeter
+        Usuario usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new NotFoundException("Usuario nao encontrado"));
+        if (usuario.getPerfil() != PerfilUsuario.ADMINISTRADOR &&
+            !projeto.getUsuarioCriadorId().equals(usuarioId)) {
+            throw new NegocioException("Voce nao tem permissao para submeter este projeto");
+        }
 
         // Valida se pode ser submetido
         if (projeto.getStatus() != StatusProjeto.RASCUNHO) {
-            throw new RuntimeException("Apenas projetos em RASCUNHO podem ser submetidos");
+            throw new NegocioException("Apenas projetos em RASCUNHO podem ser submetidos");
         }
 
         // Valida campos obrigatórios para submissão
@@ -313,22 +339,22 @@ public class ProjetoService {
 
     private void validarCamposSubmissao(Projeto projeto) {
         if (projeto.getTitulo() == null || projeto.getTitulo().trim().isEmpty()) {
-            throw new RuntimeException("Titulo é obrigatorio para submeter o projeto");
+            throw new NegocioException("Titulo é obrigatorio para submeter o projeto");
         }
         if (projeto.getOrientador() == null || projeto.getOrientador().trim().isEmpty()) {
-            throw new RuntimeException("Orientador é obrigatorio para submeter o projeto");
+            throw new NegocioException("Orientador é obrigatorio para submeter o projeto");
         }
         if (projeto.getArea() == null || projeto.getArea().trim().isEmpty()) {
-            throw new RuntimeException("Area é obrigatoria para submeter o projeto");
+            throw new NegocioException("Area é obrigatoria para submeter o projeto");
         }
         if (projeto.getDataPrevistaTermino() == null) {
-            throw new RuntimeException("Data prevista de termino é obrigatoria para submeter o projeto");
+            throw new NegocioException("Data prevista de termino é obrigatoria para submeter o projeto");
         }
     }
 
     private void validarDatasProjeto(LocalDate dataPrevistaTermino) {
         if (dataPrevistaTermino.isBefore(LocalDate.now())) {
-            throw new RuntimeException("Data prevista de término não pode ser anterior à data atual");
+            throw new NegocioException("Data prevista de término não pode ser anterior à data atual");
         }
     }
 
@@ -349,12 +375,12 @@ public class ProjetoService {
         Projeto projeto = projetoRepository.findById(id)
                 .orElseThrow(() -> {
                     logger.warn("Tentativa de excluir projeto nao encontrado com ID: {}", id);
-                    return new RuntimeException("Projeto nao encontrado com ID: " + id);
+                    return new NotFoundException("Projeto nao encontrado com ID: " + id);
                 });
 
         // VALIDAÇÃO: Não permitir excluir projetos que não estão em RASCUNHO
         if (projeto.getStatus() != StatusProjeto.RASCUNHO) {
-            throw new RuntimeException("Apenas projetos em RASCUNHO podem ser excluídos");
+            throw new NegocioException("Apenas projetos em RASCUNHO podem ser excluídos");
         }
 
         // FUTURO: Validar se existem alunos vinculados
@@ -380,7 +406,7 @@ public class ProjetoService {
     private ProjetoResponseDTO converterParaDTO(Projeto projeto, String nomeUsuarioCriador) {
         if (projeto == null) {
             logger.error("Tentativa de converter projeto nulo para DTO");
-            throw new RuntimeException("Projeto não pode ser nulo");
+            throw new NegocioException("Projeto não pode ser nulo");
         }
 
         ProjetoResponseDTO dto = new ProjetoResponseDTO();
@@ -403,7 +429,7 @@ public class ProjetoService {
     private ProjetoResumoResponseDTO converterParaResumoDTO(Projeto projeto) {
         if (projeto == null) {
             logger.error("Tentativa de converter projeto nulo para DTO resumido");
-            throw new RuntimeException("Projeto não pode ser nulo");
+            throw new NegocioException("Projeto não pode ser nulo");
         }
 
         ProjetoResumoResponseDTO dto = new ProjetoResumoResponseDTO();

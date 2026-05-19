@@ -44,7 +44,6 @@ public class Usuario {
         this.senha = senha;
         this.perfil = perfil;
         this.ativo = true;
-        this.dataCriacao = LocalDateTime.now();
     }
 
     // Getters e Setters

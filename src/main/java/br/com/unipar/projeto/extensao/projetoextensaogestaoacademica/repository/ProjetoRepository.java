@@ -27,6 +27,10 @@ public interface ProjetoRepository extends JpaRepository<Projeto, Long> {
     // Busca projeto por orientador responsável
     List<Projeto> findByOrientadorContainingIgnoreCase(String orientador);
 
+    // NOVO: Método eficiente para verificar existência por título (case insensitive)
+    @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM Projeto p WHERE LOWER(p.titulo) = LOWER(:titulo)")
+    boolean existsByTituloIgnoreCase(@Param("titulo") String titulo);
+
     // Busca projetos que estão atrazados
     // Compara a data prevista para terminar com a data atual e verifica se
     // o status está finalizado
