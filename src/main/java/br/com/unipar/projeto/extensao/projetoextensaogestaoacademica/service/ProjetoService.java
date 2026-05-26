@@ -44,6 +44,7 @@ public class ProjetoService {
     public ProjetoResponseDTO criarProjeto(CriarProjetoRequestDTO request, Long usuarioCriadorId) {
         logger.info("Criando projeto: {} para usuario: {}", request.getTitulo(), usuarioCriadorId);
 
+        // Valida se já existe projeto com mesmo título (case insensitive)
         if (projetoRepository.existsByTituloIgnoreCase(request.getTitulo())) {
             throw new NegocioException("Já existe um projeto com este título");
         }
@@ -70,11 +71,13 @@ public class ProjetoService {
         );
 
         projeto.setDataPrevistaTermino(request.getDataPrevistaTermino());
+        // Valida data prevista de término
+        validarDatasProjeto(request.getDataPrevistaTermino());
 
         Projeto projetoSalvo = projetoRepository.save(projeto);
         logger.info("Projeto criado com sucesso com ID: {}", projetoSalvo.getId());
 
-        // Redistra na auditoria
+        // Registra na auditoria
         auditoriaService.registrarAlteracao(
                 "PROJETO",
                 projetoSalvo.getId(),
@@ -85,7 +88,6 @@ public class ProjetoService {
                 this.request
         );
 
-        // Leva para método auxiliar passar para DTO antes de salvar
         return converterParaDTO(projetoSalvo, usuarioCriador.getNome());
     }
 
@@ -130,6 +132,7 @@ public class ProjetoService {
         List<Projeto> projetos = projetoRepository.findByArea(area);
         logger.debug("Encontrados {} projetos na area {}", projetos.size(), area);
 
+        // CORREÇÃO: estava "projets" - agora é "projetos"
         return projetos.stream()
                 .map(this::converterParaResumoDTO)
                 .collect(Collectors.toList());
@@ -173,6 +176,9 @@ public class ProjetoService {
         projeto.setOrientador(request.getOrientador());
         projeto.setArea(request.getArea());
         projeto.setDataPrevistaTermino(request.getDataPrevistaTermino());
+
+        // Valida a nova data
+        validarDatasProjeto(request.getDataPrevistaTermino());
 
         Projeto projetoAtualizado = projetoRepository.save(projeto);
 
@@ -231,7 +237,7 @@ public class ProjetoService {
 
         // Se for aprovado, define data de início
         if (novoStatus == StatusProjeto.APROVADO && projeto.getDataInicio() == null) {
-            projeto.setDataInicio(java.time.LocalDate.now());
+            projeto.setDataInicio(LocalDate.now());
         }
 
         // Se for concluído, valida se pode ser concluído
@@ -312,7 +318,7 @@ public class ProjetoService {
                     return new NotFoundException("Projeto nao encontrado com ID: " + id);
                 });
 
-        // Verifica permissão - apenas criador ou ADMIN podem submeter
+        // Verifica permissão: apenas criador ou ADMIN podem submeter
         Usuario usuario = usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new NotFoundException("Usuario nao encontrado"));
         if (usuario.getPerfil() != PerfilUsuario.ADMINISTRADOR &&
@@ -325,7 +331,7 @@ public class ProjetoService {
             throw new NegocioException("Apenas projetos em RASCUNHO podem ser submetidos");
         }
 
-        // Valida campos obrigatórios para submissão
+        // Valida campos obrigatórios e data
         validarCamposSubmissao(projeto);
 
         projeto.setStatus(StatusProjeto.SUBMETIDO);
@@ -350,6 +356,9 @@ public class ProjetoService {
         if (projeto.getDataPrevistaTermino() == null) {
             throw new NegocioException("Data prevista de termino é obrigatoria para submeter o projeto");
         }
+
+        // Valida a data prevista de término (não pode ser anterior à data atual)
+        validarDatasProjeto(projeto.getDataPrevistaTermino());
     }
 
     private void validarDatasProjeto(LocalDate dataPrevistaTermino) {
@@ -363,7 +372,7 @@ public class ProjetoService {
         // Verificar se todas as atividades estão concluídas
 
         if (projeto.getDataPrevistaTermino() != null &&
-                projeto.getDataPrevistaTermino().isAfter(java.time.LocalDate.now())) {
+                projeto.getDataPrevistaTermino().isAfter(LocalDate.now())) {
             logger.warn("Projeto sendo concluido antes da data prevista: {}", projeto.getId());
             // Gera apenas um aviso
         }
@@ -383,18 +392,13 @@ public class ProjetoService {
             throw new NegocioException("Apenas projetos em RASCUNHO podem ser excluídos");
         }
 
-        // FUTURO: Validar se existem alunos vinculados
-        // if (alunoProjetoRepository.existsByProjetoId(id)) {
-        //     throw new RuntimeException("Não é possível excluir projeto com alunos vinculados");
-        // }
-
         // Registra na auditoria antes de excluir
         auditoriaService.registrarAlteracao(
                 "PROJETO",
                 projeto.getId(),
                 "DELETE",
-                projeto, // Valores antigos (o projeto completo)
-                null, // Valores novos (nulo para DELETE)
+                projeto,
+                null,
                 usuarioId,
                 this.request
         );
