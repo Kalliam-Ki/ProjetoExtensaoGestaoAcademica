@@ -1,0 +1,41 @@
+.auditoria-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.auditoria-container h1 {
+  margin-bottom: 1.5rem;
+}
+
+.auditoria-table-wrapper {
+  overflow-x: auto;
+}
+
+.auditoria-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #2b0307;
+  border: 1px solid #75020f;
+}
+
+.auditoria-table th,
+.auditoria-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #75020f;
+}
+
+.auditoria-table th {
+  background-color: #19171b;
+  color: #f0f0f0;
+  font-weight: bold;
+}
+
+.auditoria-table td {
+  color: #ccc;
+}
+
+.auditoria-table tr:hover {
+  background-color: #51080d;
+}

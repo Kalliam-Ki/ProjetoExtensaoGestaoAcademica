@@ -1,0 +1,80 @@
+/* Estilos globais da aplicação */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.btn {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+.btn-primary {
+  background-color: #75020f;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #51080d;
+}
+
+.btn-secondary {
+  background-color: #2b0307;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: #75020f;
+}
+
+.btn-danger {
+  background-color: #75020f;
+  color: white;
+}
+
+.btn-danger:hover {
+  background-color: #2b0307;
+}
+
+input, textarea, select {
+  background-color: #2b0307;
+  border: 1px solid #75020f;
+  color: #f0f0f0;
+  padding: 0.5rem;
+  border-radius: 4px;
+  width: 100%;
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: #75020f;
+  box-shadow: 0 0 0 2px rgba(117, 2, 15, 0.3);
+}
+
+label {
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+  display: block;
+}
+
+.card {
+  background-color: #2b0307;
+  border: 1px solid #75020f;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.error-message {
+  background-color: #75020f;
+  color: white;
+  padding: 0.5rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}

@@ -1,0 +1,31 @@
+.form-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 80px);
+  padding: 2rem 1rem;
+}
+
+.form-card {
+  background-color: #2b0307;
+  border: 1px solid #75020f;
+  border-radius: 8px;
+  padding: 2rem;
+  width: 100%;
+  max-width: 600px;
+}
+
+.form-card h1 {
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.form-actions button {
+  flex: 1;
+}

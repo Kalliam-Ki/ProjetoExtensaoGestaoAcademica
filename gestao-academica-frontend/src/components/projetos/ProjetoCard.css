@@ -1,0 +1,38 @@
+.projeto-card {
+  background-color: #2b0307;
+  border: 1px solid #75020f;
+  border-radius: 8px;
+  padding: 1rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.projeto-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(117, 2, 15, 0.3);
+}
+
+.projeto-titulo {
+  color: #f0f0f0;
+  margin-bottom: 0.5rem;
+  font-size: 1.25rem;
+}
+
+.projeto-orientador,
+.projeto-area,
+.projeto-data {
+  color: #ccc;
+  margin-bottom: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.projeto-status {
+  font-weight: bold;
+  margin: 0.5rem 0;
+}
+
+.status-rascunho { color: #999; }
+.status-submetido { color: #ffc107; }
+.status-analise { color: #fd7e14; }
+.status-aprovado { color: #28a745; }
+.status-andamento { color: #007bff; }
+.status-concluido { color: #6f42c1; }

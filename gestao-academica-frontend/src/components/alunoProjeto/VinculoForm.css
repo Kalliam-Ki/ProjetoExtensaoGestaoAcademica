@@ -1,0 +1,24 @@
+.vinculo-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 80px);
+  padding: 2rem 1rem;
+}
+
+.vinculo-card {
+  background-color: #2b0307;
+  border: 1px solid #75020f;
+  border-radius: 8px;
+  padding: 2rem;
+  width: 100%;
+  max-width: 500px;
+}
+
+.success-message {
+  background-color: #28a745;
+  color: white;
+  padding: 0.5rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}

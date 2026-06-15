@@ -1,0 +1,40 @@
+.alunos-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.alunos-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.alunos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.aluno-card {
+  background-color: #2b0307;
+  border: 1px solid #75020f;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.aluno-card h3 {
+  margin-bottom: 0.5rem;
+  color: #f0f0f0;
+}
+
+.ativo {
+  color: #28a745;
+  font-weight: bold;
+}
+
+.inativo {
+  color: #75020f;
+  font-weight: bold;
+}
